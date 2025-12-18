@@ -1,7 +1,4 @@
-// Configure PDF.js worker with SRI for security
 if (typeof pdfjsLib !== 'undefined') {
-    // Note: Worker source URL is set directly as the library loads it internally
-    // The worker file is served from the same CDN with proper CORS headers
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
@@ -11,16 +8,12 @@ class PDFMarginInspector {
         this.analysisResults = [];
         this.bleedSize = 3; // mm
         this.marginThreshold = 5; // mm
-        // Content detection threshold: pixels with RGB values below this are considered content
-        // Range: 0-255, where 255 = pure white. Lower values detect lighter content.
         this.contentThreshold = 250;
-        // Sampling interval for margin detection optimization (1 = check every pixel, 2 = every other pixel, etc.)
         this.samplingInterval = 2;
         this.initializeEventListeners();
     }
 
     initializeEventListeners() {
-        // Check if PDF.js is loaded
         if (typeof pdfjsLib === 'undefined') {
             this.showError('PDF.js library failed to load. Please check your internet connection or ad blocker settings.');
             return;
@@ -34,13 +27,10 @@ class PDFMarginInspector {
         const bleedSizeInput = document.getElementById('bleedSize');
         const marginThresholdInput = document.getElementById('marginThreshold');
 
-        // Upload area click
         uploadArea.addEventListener('click', () => fileInput.click());
 
-        // File input change
         fileInput.addEventListener('change', (e) => this.handleFileSelect(e.target.files[0]));
 
-        // Drag and drop
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragover');
@@ -58,14 +48,11 @@ class PDFMarginInspector {
             }
         });
 
-        // Analyze button
         analyzeBtn.addEventListener('click', () => this.analyzePDF());
 
-        // Export buttons
         exportJsonBtn.addEventListener('click', () => this.exportJSON());
         exportCsvBtn.addEventListener('click', () => this.exportCSV());
 
-        // Settings
         bleedSizeInput.addEventListener('change', (e) => {
             this.bleedSize = parseFloat(e.target.value);
         });
@@ -124,28 +111,23 @@ class PDFMarginInspector {
         const page = await this.pdfDoc.getPage(pageNum);
         const viewport = page.getViewport({ scale: 2.0 });
         
-        // Create canvas for rendering
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.height = viewport.height;
         canvas.width = viewport.width;
 
-        // Render PDF page to canvas
         await page.render({
             canvasContext: context,
             viewport: viewport
         }).promise;
 
-        // Get page dimensions in points (1 point = 1/72 inch)
         const pageWidth = page.view[2] - page.view[0];
         const pageHeight = page.view[3] - page.view[1];
 
-        // Analyze margins by detecting content boundaries
         const margins = this.detectMargins(context, canvas.width, canvas.height);
 
-        // Convert pixel margins to mm (assuming 72 DPI standard)
         const scale = viewport.scale;
-        const pxToMm = (px) => (px / scale) * 0.3527778; // points to mm conversion
+        const pxToMm = (px) => (px / scale) * 0.3527778; // mm
 
         const result = {
             pageNumber: pageNum,
@@ -180,12 +162,10 @@ class PDFMarginInspector {
         const data = imageData.data;
         const interval = this.samplingInterval;
 
-        // Function to check if a pixel is "content" (not white/empty)
         const isContent = (r, g, b, a) => {
             return a > 10 && (r < this.contentThreshold || g < this.contentThreshold || b < this.contentThreshold);
         };
 
-        // Detect top margin - scan from top with sampling
         let topMargin = 0;
         outerTop: for (let y = 0; y < height; y += interval) {
             for (let x = 0; x < width; x += interval) {
@@ -197,7 +177,6 @@ class PDFMarginInspector {
             }
         }
 
-        // Detect bottom margin - scan from bottom with sampling
         let bottomMargin = 0;
         outerBottom: for (let y = height - 1; y >= 0; y -= interval) {
             for (let x = 0; x < width; x += interval) {
@@ -209,7 +188,6 @@ class PDFMarginInspector {
             }
         }
 
-        // Detect left margin - scan from left with sampling
         let leftMargin = 0;
         outerLeft: for (let x = 0; x < width; x += interval) {
             for (let y = 0; y < height; y += interval) {
@@ -221,7 +199,6 @@ class PDFMarginInspector {
             }
         }
 
-        // Detect right margin - scan from right with sampling
         let rightMargin = 0;
         outerRight: for (let x = width - 1; x >= 0; x -= interval) {
             for (let y = 0; y < height; y += interval) {
@@ -252,7 +229,6 @@ class PDFMarginInspector {
     displayUniformityReport() {
         const uniformityContent = document.getElementById('uniformityContent');
         
-        // Calculate statistics
         const margins = {
             top: this.analysisResults.map(r => parseFloat(r.margins.top)),
             bottom: this.analysisResults.map(r => parseFloat(r.margins.bottom)),
@@ -267,7 +243,6 @@ class PDFMarginInspector {
             right: this.calculateStats(margins.right)
         };
 
-        // Check uniformity
         const isUniform = (values, threshold = this.marginThreshold) => {
             const max = Math.max(...values);
             const min = Math.min(...values);
@@ -423,7 +398,6 @@ class PDFMarginInspector {
 
             pagesContent.appendChild(pageCard);
 
-            // Add canvas with margin overlay
             const container = document.getElementById(`canvas-container-${result.pageNumber}`);
             const displayCanvas = this.createDisplayCanvas(result);
             container.appendChild(displayCanvas);
@@ -442,7 +416,6 @@ class PDFMarginInspector {
         const ctx = displayCanvas.getContext('2d');
         ctx.drawImage(result.canvas, 0, 0, displayCanvas.width, displayCanvas.height);
 
-        // Draw margin overlay
         ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
@@ -455,7 +428,6 @@ class PDFMarginInspector {
             right: margins.right * scale
         };
 
-        // Draw margin lines
         ctx.beginPath();
         // Top
         ctx.moveTo(0, scaledMargins.top);
@@ -477,7 +449,6 @@ class PDFMarginInspector {
     isPageConsistent(result, index) {
         if (this.analysisResults.length === 1) return true;
 
-        // Compare with first page
         const first = this.analysisResults[0];
         const threshold = this.marginThreshold;
 
@@ -564,5 +535,4 @@ class PDFMarginInspector {
     }
 }
 
-// Initialize the application
 const inspector = new PDFMarginInspector();

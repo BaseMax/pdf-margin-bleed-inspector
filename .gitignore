@@ -2,6 +2,9 @@
 /tmp/
 *.tmp
 
+# Demo files (for testing only)
+demo.html
+
 # OS files
 .DS_Store
 Thumbs.db

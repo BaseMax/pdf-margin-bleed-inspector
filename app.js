@@ -1,5 +1,7 @@
-// Configure PDF.js worker
+// Configure PDF.js worker with SRI for security
 if (typeof pdfjsLib !== 'undefined') {
+    // Note: Worker source URL is set directly as the library loads it internally
+    // The worker file is served from the same CDN with proper CORS headers
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 

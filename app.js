@@ -9,6 +9,11 @@ class PDFMarginInspector {
         this.analysisResults = [];
         this.bleedSize = 3; // mm
         this.marginThreshold = 5; // mm
+        // Content detection threshold: pixels with RGB values below this are considered content
+        // Range: 0-255, where 255 = pure white. Lower values detect lighter content.
+        this.contentThreshold = 250;
+        // Sampling interval for margin detection optimization (1 = check every pixel, 2 = every other pixel, etc.)
+        this.samplingInterval = 2;
         this.initializeEventListeners();
     }
 
@@ -171,17 +176,17 @@ class PDFMarginInspector {
     detectMargins(context, width, height) {
         const imageData = context.getImageData(0, 0, width, height);
         const data = imageData.data;
+        const interval = this.samplingInterval;
 
         // Function to check if a pixel is "content" (not white/empty)
         const isContent = (r, g, b, a) => {
-            const threshold = 250;
-            return a > 10 && (r < threshold || g < threshold || b < threshold);
+            return a > 10 && (r < this.contentThreshold || g < this.contentThreshold || b < this.contentThreshold);
         };
 
-        // Detect top margin
+        // Detect top margin - scan from top with sampling
         let topMargin = 0;
-        outerTop: for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
+        outerTop: for (let y = 0; y < height; y += interval) {
+            for (let x = 0; x < width; x += interval) {
                 const idx = (y * width + x) * 4;
                 if (isContent(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) {
                     topMargin = y;
@@ -190,10 +195,10 @@ class PDFMarginInspector {
             }
         }
 
-        // Detect bottom margin
+        // Detect bottom margin - scan from bottom with sampling
         let bottomMargin = 0;
-        outerBottom: for (let y = height - 1; y >= 0; y--) {
-            for (let x = 0; x < width; x++) {
+        outerBottom: for (let y = height - 1; y >= 0; y -= interval) {
+            for (let x = 0; x < width; x += interval) {
                 const idx = (y * width + x) * 4;
                 if (isContent(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) {
                     bottomMargin = height - y - 1;
@@ -202,10 +207,10 @@ class PDFMarginInspector {
             }
         }
 
-        // Detect left margin
+        // Detect left margin - scan from left with sampling
         let leftMargin = 0;
-        outerLeft: for (let x = 0; x < width; x++) {
-            for (let y = 0; y < height; y++) {
+        outerLeft: for (let x = 0; x < width; x += interval) {
+            for (let y = 0; y < height; y += interval) {
                 const idx = (y * width + x) * 4;
                 if (isContent(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) {
                     leftMargin = x;
@@ -214,10 +219,10 @@ class PDFMarginInspector {
             }
         }
 
-        // Detect right margin
+        // Detect right margin - scan from right with sampling
         let rightMargin = 0;
-        outerRight: for (let x = width - 1; x >= 0; x--) {
-            for (let y = 0; y < height; y++) {
+        outerRight: for (let x = width - 1; x >= 0; x -= interval) {
+            for (let y = 0; y < height; y += interval) {
                 const idx = (y * width + x) * 4;
                 if (isContent(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) {
                     rightMargin = width - x - 1;

@@ -72,6 +72,10 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Fallback if CDN is blocked - will be handled by app.js
+        window.pdfjsLibLoaded = typeof pdfjsLib !== 'undefined';
+    </script>
     <script src="app.js"></script>
 </body>
 </html>

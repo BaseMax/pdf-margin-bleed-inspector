@@ -1,5 +1,7 @@
 // Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 
 class PDFMarginInspector {
     constructor() {
@@ -11,6 +13,12 @@ class PDFMarginInspector {
     }
 
     initializeEventListeners() {
+        // Check if PDF.js is loaded
+        if (typeof pdfjsLib === 'undefined') {
+            this.showError('PDF.js library failed to load. Please check your internet connection or ad blocker settings.');
+            return;
+        }
+
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const analyzeBtn = document.getElementById('analyzeBtn');
@@ -531,6 +539,21 @@ class PDFMarginInspector {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    }
+
+    showError(message) {
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.innerHTML = `
+            <div class="upload-content">
+                <div style="color: var(--danger-color); font-size: 3rem; margin-bottom: 20px;">⚠️</div>
+                <p style="color: var(--danger-color); font-weight: 600; margin-bottom: 10px;">Error Loading Application</p>
+                <p style="color: var(--text-secondary);">${message}</p>
+                <p style="color: var(--text-secondary); margin-top: 20px; font-size: 0.9rem;">
+                    The application requires PDF.js library from CDN. Please ensure your internet connection is active 
+                    and ad blockers are not blocking cdnjs.cloudflare.com
+                </p>
+            </div>
+        `;
     }
 }
 
